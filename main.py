@@ -5,22 +5,26 @@ pg.init()
 pg.font.init()
 
 # == Screen sets ==
-SCREEN_WIDTH = 640
-SCREEN_HEIGHT = 640
+SCREEN_WIDTH: int = 640
+SCREEN_HEIGHT: int = 640
 
 screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pg.display.set_caption("Aim Trainer")
 
 clock = pg.time.Clock()
 
-running = True
+running: bool = True
+
+# == Game settings ==
+timer: int = 60
 
 # == Font sets ==
 game_title_font = pg.font.SysFont('Helvetica', 70)
+sub_title_font = pg.font.SysFont('Helvatica', 40)
 default_font = pg.font.SysFont('Helvetica', 30)
 
 # == Targets sets ==
-targets = {}
+targets: dict = {}
 
 life_time: int = 600  # Tempo que o alvo passará na tela (em frames)
 max_targets: int = 10  # Número de alvos máximos que poderão aparecer na tela de uma só vez
@@ -43,7 +47,7 @@ def generateRandomPos() -> tuple:
     Gera uma posição aleatória.
     """
     target_x: int = randint(50, SCREEN_WIDTH - (initial_target_width + 50))
-    target_y: int = randint(110, SCREEN_HEIGHT - (initial_target_height + 50))
+    target_y: int = randint(130, SCREEN_HEIGHT - (initial_target_height + 50))
     return target_x, target_y
 
 def isOverlapping(new_rect) -> bool:
@@ -85,7 +89,7 @@ def updateAndDrawTargets() -> None:
         target, time_left = targets[pos]
         time_left -= 1
         
-        if time_left <= 0:
+        if time_left <= 150:
             del targets[pos]
             misses += 1
         else:
@@ -120,20 +124,23 @@ def handleMouseClick(pos) -> None:
 # == Code ==
 
 while running:
-    clock.tick(30)  # Taxa de atualização ajustada para 30 frames por segundo
+    clock.tick(30)
 
     screen.fill((105, 105, 105))
 
     # Text
     game_title_text = game_title_font.render("AIM TRAINER", True, (255, 255, 255))
+    sub_title_text = sub_title_font.render("I M P R O V E  Y O U R  A I M", True, (255, 0, 0))
     clicks_text = default_font.render(f"Clicks: {clicks}", True, (255, 255, 255))
     points_text = default_font.render(f"Points: {points}", True, (255, 255, 255))
     misses_text = default_font.render(f"Misses: {misses}", True, (255, 255, 255))
-    screen.blit(game_title_text, (50, 30))
+    screen.blit(game_title_text, (45, 30))
+    screen.blit(sub_title_text, (40, 100))
     screen.blit(clicks_text, (SCREEN_WIDTH - 150, 20))
     screen.blit(points_text, (SCREEN_WIDTH - 150, 50))
     screen.blit(misses_text, (SCREEN_WIDTH - 150, 80))
 
+    # Targets
     if getNumOfTargets() < max_targets:
         createTarget()
 
