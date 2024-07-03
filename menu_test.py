@@ -1,8 +1,13 @@
 import pygame as pg
 from random import randint
+import sys
 
 pg.init()
 pg.font.init()
+
+# == Colors ==
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
 
 # == Screen sets ==
 SCREEN_WIDTH: int = 640
@@ -18,16 +23,21 @@ clock = pg.time.Clock()
 
 running: bool = True
 
-# == Player sets
-PLAYER_IMAGE = pg.image.load('Megumin.png')
-RESIZED_PLAYER = pg.transform.scale(PLAYER_IMAGE, (70, 70))
+# == Menu settings ==
+font = pg.font.Font(None, 36)
 
-# == Game sets ==
+option1 = font.render('JOGAR', True, WHITE)
+option1_rect = option1.get_rect(center=(SCREEN_WIDTH//2, 150))
+
+option2 = font.render('SAIR', True, WHITE)
+option2_rect = option2.get_rect(center=(SCREEN_WIDTH//2, 200))
+
+# == Game settings ==
 timer: int = 60
-accuracy: float = 100.00
 
 # == Font sets ==
 game_title_font = pg.font.SysFont('Helvetica', 70)
+sub_title_font = pg.font.SysFont('Helvatica', 40)
 default_font = pg.font.SysFont('Helvetica', 30)
 
 # == Targets sets ==
@@ -107,8 +117,6 @@ def updateAndDrawTargets() -> None:
         if time_left <= 150:
             del targets[pos]
             misses += 1
-            decreaseAccuracy()
-
         else:
             targets[pos][1] = time_left
             
@@ -129,53 +137,24 @@ def updateAndDrawTargets() -> None:
             # Desenha o alvo redimensionado
             screen.blit(scaled_target, (new_x, new_y))
 
-def decreaseAccuracy() -> None:
-    """
-    Reduz a accurancy se o jogador errar um clique ou um alvo desaparecer.
-    """
-    global accuracy
-    if clicks > 0:
-        accuracy -= 1.0 * ((misses + points / clicks) * 2.0)
-        if accuracy < 0:
-            accuracy = 0
-    else:
-        accuracy -= 1.0
-
-def increaseAccuracy() -> None:
-    """
-    Aumenta minimamente a accurancy se o jogador acertar um clique.
-    """
-    global accuracy
-    if accuracy + 0.1 < 100.0:
-        accuracy += (clicks / points)
-        if accuracy > 100.0:
-            accuracy = 100.0
-    
 def handleMouseClick(pos) -> None:
     """
     Verifica se o clique do mouse está dentro de algum alvo.
     Se sim, aumenta os pontos e remove o alvo.
     """
-    global points, misses, accuracy
-
-    found: bool = False
-    
+    global points
     for target_pos, (target, _, _) in list(targets.items()):
         rect = target.get_rect()
         rect.x, rect.y = target_pos  # Define a posição correta do retângulo do alvo
         
         if rect.collidepoint(pos):
             points += 1
-            increaseAccuracy()
             del targets[target_pos]
-            found = True
             break
 
-    if not found:
-        misses += 1
-        decreaseAccuracy()
-
 # == Code ==
+
+in_game = False
 
 while running:
     clock.tick(30)
@@ -183,28 +162,51 @@ while running:
     screen.fill(BACKGROUND_COLOR)
     screen.blit(BACKGROUND_IMAGE, (0, 0))
 
-    # Text
-    game_title_text = game_title_font.render("AIM TRAINER", True, (255, 255, 255))
-    accuracy_text = default_font.render(f"Accuracy: {accuracy:.2f}", True, (255, 255, 255))
-    #screen.blit(game_title_text, (45, 40))
-    screen.blit(accuracy_text, (SCREEN_WIDTH - 250, 40))
+    if in_game:
+        # Text
+        game_title_text = game_title_font.render("AIM TRAINER", True, (255, 255, 255))
+        #sub_title_text = sub_title_font.render("I M P R O V E  Y O U R  A I M", True, (255, 0, 0))
+        clicks_text = default_font.render(f"Clicks: {clicks}", True, (255, 255, 255))
+        points_text = default_font.render(f"Points: {points}", True, (255, 255, 255))
+        misses_text = default_font.render(f"Misses: {misses}", True, (255, 255, 255))
+        screen.blit(game_title_text, (45, 40))
+        #screen.blit(sub_title_text, (40, 100))
+        screen.blit(clicks_text, (SCREEN_WIDTH - 150, 20))
+        screen.blit(points_text, (SCREEN_WIDTH - 150, 50))
+        screen.blit(misses_text, (SCREEN_WIDTH - 150, 80))
 
-    # Player
-    screen.blit(RESIZED_PLAYER, (int(SCREEN_WIDTH / 2) - 10, SCREEN_HEIGHT - 60))
+        # Targets
+        if getNumOfTargets() < MAX_TARGETS:
+            createTarget()
 
-    # Targets
-    if getNumOfTargets() < MAX_TARGETS:
-        createTarget()
+        updateAndDrawTargets()
 
-    updateAndDrawTargets()
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                running = False
+            elif event.type == pg.MOUSEBUTTONDOWN:
+                pg.mixer.Sound.play(BOW_SFX)
+                clicks += 1
+                handleMouseClick(event.pos)
+        
+    else:
+        screen.blit(option1, option1_rect)
+        screen.blit(option2, option2_rect)
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                running = False
 
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            running = False
-        elif event.type == pg.MOUSEBUTTONDOWN:
-            clicks += 1
-            pg.mixer.Sound.play(BOW_SFX)
-            handleMouseClick(event.pos)
+            if event.type == pg.MOUSEBUTTONDOWN:
+                # Verifica se o clique do mouse foi em alguma opção
+                pos = pg.mouse.get_pos()
+                
+                # Exemplo: clique na "Opção 1"
+                if option1_rect.collidepoint(pos):
+                    in_game = True
+                    
+                # Exemplo: clique na "Opção 2"
+                elif option2_rect.collidepoint(pos):
+                    running = False
 
     pg.display.update()
 
